@@ -28,10 +28,10 @@ ASCharacter::ASCharacter(const class FObjectInitializer& ObjectInitializer)
 	CameraBoomComp->SocketOffset = FVector(0, 35, 0);
 	CameraBoomComp->TargetOffset = FVector(0, 0, 55);
 	CameraBoomComp->bUsePawnControlRotation = true;
-	CameraBoomComp->AttachParent = GetRootComponent();
+	CameraBoomComp->SetupAttachment(GetRootComponent());
 
 	CameraComp = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("Camera"));
-	CameraComp->AttachParent = CameraBoomComp;
+	CameraComp->SetupAttachment(CameraBoomComp);
 
 	MaxUseDistance = 800;
 	bHasNewFocus = true;
@@ -102,30 +102,30 @@ void ASCharacter::Tick(float DeltaTime)
 }
 
 // Called to bind functionality to input
-void ASCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ASCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
-	Super::SetupPlayerInputComponent(InputComponent);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	// Movement
-	InputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
-	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
-	InputComponent->BindAction("SprintHold", IE_Pressed, this, &ASCharacter::OnStartSprinting);
-	InputComponent->BindAction("SprintHold", IE_Released, this, &ASCharacter::OnStopSprinting);
+	PlayerInputComponent->BindAction("SprintHold", IE_Pressed, this, &ASCharacter::OnStartSprinting);
+	PlayerInputComponent->BindAction("SprintHold", IE_Released, this, &ASCharacter::OnStopSprinting);
 
-	InputComponent->BindAction("CrouchToggle", IE_Released, this, &ASCharacter::OnCrouchToggle);
+	PlayerInputComponent->BindAction("CrouchToggle", IE_Released, this, &ASCharacter::OnCrouchToggle);
 
-	InputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::OnStartJump);
-	InputComponent->BindAction("Jump", IE_Released, this, &ASCharacter::OnStopJump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::OnStartJump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ASCharacter::OnStopJump);
 
 	// Interaction
-	InputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
+	PlayerInputComponent->BindAction("Use", IE_Pressed, this, &ASCharacter::Use);
 
 	// Weapons
-	InputComponent->BindAction("Targeting", IE_Pressed, this, &ASCharacter::OnStartTargeting);
-	InputComponent->BindAction("Targeting", IE_Released, this, &ASCharacter::OnEndTargeting);
+	PlayerInputComponent->BindAction("Targeting", IE_Pressed, this, &ASCharacter::OnStartTargeting);
+	PlayerInputComponent->BindAction("Targeting", IE_Released, this, &ASCharacter::OnEndTargeting);
 }
 
 
@@ -176,7 +176,7 @@ ASUsableActor* ASCharacter::GetUsableInView()
 	TraceParams.bTraceComplex = true;
 
 	FHitResult Hit(ForceInit);
-	GetWorld()->LineTraceSingle(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
+	GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, TraceParams);
 
 	//DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 1.0f);
 
@@ -301,12 +301,18 @@ void ASCharacter::SetIsJumping(bool NewJumping)
 }
 
 
-void ASCharacter::OnLanded(const FHitResult& Hit)
+void ASCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
 {
-	Super::OnLanded(Hit);
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
 
-	SetIsJumping(false);
+	/* Check if we are no longer falling/jumping */
+	if (PrevMovementMode == EMovementMode::MOVE_Falling &&
+		GetCharacterMovement()->MovementMode != EMovementMode::MOVE_Falling)
+	{
+		SetIsJumping(false);
+	}
 }
+
 
 void ASCharacter::ServerSetIsJumping_Implementation(bool NewJumping)
 {
