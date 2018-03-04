@@ -17,7 +17,7 @@ class SURVIVALGAME_API ASCharacter : public ACharacter
 	virtual void Tick(float DeltaSeconds) override;
 
 	/* Called to bind functionality to input */
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

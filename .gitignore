@@ -1,7 +1,9 @@
 Intermediate
 Saved
+Plugins
 /SurvivalGame/*.sdf
 
+.vs
 *.pdb
 SurvivalGame/SurvivalGame.opensdf
 *.suo
